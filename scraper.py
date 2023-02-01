@@ -1,10 +1,14 @@
+# Web Scraping Reclame Aqui - Americanas
+# Feito por Nycolas Dias
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
 from time import sleep
 from bs4 import BeautifulSoup
-import datetime
-
+import re
+from datetime import datetime, timedelta
+import os
 
 # Requisitando página inicial
 options = Options()
@@ -14,6 +18,7 @@ links= []
 lista_reclamacoes = []
 url_base = 'https://www.reclameaqui.com.br'
 errorlist = []
+new_data = []
 
 def ultima_pag():
     navegador = webdriver.Chrome(options=options)
@@ -41,8 +46,7 @@ def main(x):
 
     for i in urls:
         link_req = url_base +i.find('a')['href']
-        links.append(link_req)
-    print(links)    
+        links.append(link_req)   
     
     for link in links:
         sleep(2)
@@ -54,6 +58,7 @@ def main(x):
         localizacao = soup.find('span', attrs={'data-testid': 'complaint-location'}).text
         data_criacao = soup.find('span', attrs={'data-testid': 'complaint-creation-date'}).text
         id_reclamacao = soup.find('span', attrs={'data-testid': 'complaint-id'}).text
+        id_reclamacao = ''.join(re.findall('[0-9]{9}', id_reclamacao)) # RETIRANDO A PALAVRA 'ID'
         status_reclamacao = soup.find('div', attrs={'data-testid': 'complaint-status'}).text
         try:
             compraria_novamente = soup.find('div', attrs={'data-testid': 'complaint-deal-again'}).text
@@ -66,34 +71,85 @@ def main(x):
             consideracao_final_consumidor = ''
             
         reclamacao = {
-            'titulo': titulo_reclamacao,
-            'localizacao': localizacao,
-            'data_criacao': data_criacao,
-            'id_reclamacao': id_reclamacao,
-            'status': status_reclamacao,
-            'compraria_novamente': compraria_novamente,
-            'nota_atendimento': nota_atendimento,
-            'consideracao_final_consumidor': consideracao_final_consumidor
+            'TITULO': titulo_reclamacao.upper(),
+            'LOCALIZACAO': localizacao.upper(),
+            'DATA_CRIACAO': data_criacao.upper(),
+            'ID_RECLAMACAO': id_reclamacao.upper(),
+            'STATUS': status_reclamacao.upper(),
+            'COMPRARIA_NOVAMENTE': compraria_novamente.upper(),
+            'NOTA_ATENDIMENTO': nota_atendimento.upper(),
+            'CONSIDERACAO_FINAL_CONSUMIDOR': consideracao_final_consumidor.upper(),
+            'REFERENCIA': 'AMERICANAS'
         }
 
         lista_reclamacoes.append(reclamacao)
-
-        
     return lista_reclamacoes
 
+def get_new_data():
+    old_data = pd.read_csv(f'./data/data-{ontem}.csv', sep=';')
+    new_data = pd.read_csv(f'./data/data-{hoje}.csv', sep=';')
+
+
+    data_e = old_data['DATA_CRIACAO']
+    titulo_e = old_data['TITULO']
+    data_c = new_data['DATA_CRIACAO']
+    titulo_c = new_data['TITULO']
+
+    day = datetime.today().date().day
+
+    seq_id_e = (data_e + ' - ' + titulo_e)
+    old_data['sequencial_id'] = seq_id_e
+    old_data = old_data.drop_duplicates()
+    old_data.to_csv('old_data.csv', index=False)
+    #----------------------------------------------------------------
+    seq_id_c = (data_e + ' - ' + titulo_e)
+    new_data['sequencial_id'] = seq_id_c
+    new_data = new_data.drop_duplicates()
+    new_data.to_csv('new_data.csv',index=False)
+
+    old_data = pd.read_csv(f'old_data.csv')
+    new_data = pd.read_csv(f'new_data.csv')
+
+    new_data_only = pd.merge(new_data, old_data, how='outer')
+    new_data_only = new_data_only.drop_duplicates() 
+    new_data_only = new_data_only.drop(columns='sequencial_id')
+    new_data_only = new_data_only.drop_duplicates()
+    new_data_only.to_csv('./data/new_data_only.csv', index=False)
+    print('New Data Only created')
+
+
+    # apagando os arquivos em desuso
+    try:
+        os.remove("new_data.csv")
+        os.remove("old_data.csv")
+    except FileNotFoundError:
+        print("O arquivo não foi encontrado.")
+
+    return
+
 try: 
-    # ult_pag = ultima_pag()   # melhorar o codigo
+    hoje = datetime.today().date()
+    ontem = hoje - timedelta(days=1)
+    hora = datetime.now().strftime("%H:%M:%S")
     
-    for x in range(1,50):
+    # PAGINAÇÃO DAS 10 ULTIMAS PAGINAS, MAIS OU MENOS DADOS DE 1 DIA
+    for x in range(1,11): 
         main(x)
+        print(f"Estamos na página {x}")
         
-    df = pd.DataFrame(lista_reclamacoes)
-    df = df.drop(index=0)
-    df.to_csv(f'.\data\data-{datetime.date.today()}.csv', index=False) 
+    df = pd.DataFrame(lista_reclamacoes) # Dados novos coletados pelo script de web scraping
+    print(f"Salvando ...")
+    df.to_csv(f'.\data\data-{hoje}.csv', index=False, sep=';') 
+    
+    sleep(3) # Aguardando ...
+    
+    print(f"Pegando somente os novos dados")
+    get_new_data()
+    
 except Exception as e:
-    errorlist.append(f'{e} em {datetime.date.today()}')
+    errorlist.append(f'{e} em {hoje}')
     f = open('logs_error.txt', 'a')
     f.write(str(errorlist))
     f.close()
 finally:
-    print(f'Done. {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Done. {hora}')
