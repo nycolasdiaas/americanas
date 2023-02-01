@@ -19,6 +19,7 @@ lista_reclamacoes = []
 url_base = 'https://www.reclameaqui.com.br'
 errorlist = []
 new_data = []
+logs = []
 
 def ultima_pag():
     navegador = webdriver.Chrome(options=options)
@@ -85,37 +86,7 @@ def main(x):
         lista_reclamacoes.append(reclamacao)
     return lista_reclamacoes
 
-def get_new_data():
-    old_data = pd.read_csv(f'./data/data-{ontem}.csv', sep=';')
-    new_data = pd.read_csv(f'./data/data-{hoje}.csv', sep=';')
 
-
-    data_e = old_data['DATA_CRIACAO']
-    titulo_e = old_data['TITULO']
-    data_c = new_data['DATA_CRIACAO']
-    titulo_c = new_data['TITULO']
-
-    day = datetime.today().date().day
-
-    seq_id_e = (data_e + ' - ' + titulo_e)
-    old_data['sequencial_id'] = seq_id_e
-    old_data = old_data.drop_duplicates()
-    old_data.to_csv('old_data.csv', index=False)
-    #----------------------------------------------------------------
-    seq_id_c = (data_e + ' - ' + titulo_e)
-    new_data['sequencial_id'] = seq_id_c
-    new_data = new_data.drop_duplicates()
-    new_data.to_csv('new_data.csv',index=False)
-
-    old_data = pd.read_csv(f'old_data.csv')
-    new_data = pd.read_csv(f'new_data.csv')
-
-    new_data_only = pd.merge(new_data, old_data, how='outer')
-    new_data_only = new_data_only.drop_duplicates() 
-    new_data_only = new_data_only.drop(columns='sequencial_id')
-    new_data_only = new_data_only.drop_duplicates()
-    new_data_only.to_csv('./data/new_data_only.csv', index=False)
-    print('New Data Only created')
 
 
     # apagando os arquivos em desuso
@@ -125,7 +96,7 @@ def get_new_data():
     except FileNotFoundError:
         print("O arquivo não foi encontrado.")
 
-    return
+    return new_data_only
 
 try: 
     hoje = datetime.today().date()
@@ -133,23 +104,23 @@ try:
     hora = datetime.now().strftime("%H:%M:%S")
     
     # PAGINAÇÃO DAS 10 ULTIMAS PAGINAS, MAIS OU MENOS DADOS DE 1 DIA
-    for x in range(1,11): 
+    for x in range(1,6): 
         main(x)
         print(f"Estamos na página {x}")
         
     df = pd.DataFrame(lista_reclamacoes) # Dados novos coletados pelo script de web scraping
     print(f"Salvando ...")
-    df.to_csv(f'.\data\data-{hoje}.csv', index=False, sep=';') 
-    
-    sleep(3) # Aguardando ...
-    
-    print(f"Pegando somente os novos dados")
-    get_new_data()
-    
+    df.to_csv(f'.\data\data-{hoje}.csv', index=False, sep=';', header=True)     
 except Exception as e:
-    errorlist.append(f'{e} em {hoje}')
-    f = open('logs_error.txt', 'a')
-    f.write(str(errorlist))
+    msg_erro = '\n'+'='*60 +'\n'+f'{e} em {hoje} as {hora}\n' + '='*60+'\n'
+    f = open('./logs/logs_error.txt', 'a')
+    f.write(''.join(msg_erro))
     f.close()
+    print(''.join(msg_erro))
 finally:
-    print(f'Done. {hora}')
+    msg = '\n'+'='*60 +'\n'+f'O script rodou {hoje} as {hora} e foram coletados {len(df)} registros.\n'+'='*60+'\n'
+    print(msg)
+    f = open('./logs/logs.txt', 'a')
+    f.write(''.join(msg))
+    f.close()
+    print(''.join(logs))
