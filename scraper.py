@@ -87,17 +87,6 @@ def main(x):
     return lista_reclamacoes
 
 
-
-
-    # apagando os arquivos em desuso
-    try:
-        os.remove("new_data.csv")
-        os.remove("old_data.csv")
-    except FileNotFoundError:
-        print("O arquivo não foi encontrado.")
-
-    return new_data_only
-
 try: 
     hoje = datetime.today().date()
     ontem = hoje - timedelta(days=1)
