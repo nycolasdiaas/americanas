@@ -1,10 +1,14 @@
+# Web Scraping Reclame Aqui - Americanas
+# Feito por Nycolas Dias
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
 from time import sleep
 from bs4 import BeautifulSoup
-import datetime
-
+import re
+from datetime import datetime, timedelta
+import os
 
 # Requisitando página inicial
 options = Options()
@@ -14,6 +18,8 @@ links= []
 lista_reclamacoes = []
 url_base = 'https://www.reclameaqui.com.br'
 errorlist = []
+new_data = []
+logs = []
 
 def ultima_pag():
     navegador = webdriver.Chrome(options=options)
@@ -41,8 +47,7 @@ def main(x):
 
     for i in urls:
         link_req = url_base +i.find('a')['href']
-        links.append(link_req)
-    print(links)    
+        links.append(link_req)   
     
     for link in links:
         sleep(2)
@@ -54,6 +59,7 @@ def main(x):
         localizacao = soup.find('span', attrs={'data-testid': 'complaint-location'}).text
         data_criacao = soup.find('span', attrs={'data-testid': 'complaint-creation-date'}).text
         id_reclamacao = soup.find('span', attrs={'data-testid': 'complaint-id'}).text
+        id_reclamacao = ''.join(re.findall('[0-9]{9}', id_reclamacao)) # RETIRANDO A PALAVRA 'ID'
         status_reclamacao = soup.find('div', attrs={'data-testid': 'complaint-status'}).text
         try:
             compraria_novamente = soup.find('div', attrs={'data-testid': 'complaint-deal-again'}).text
@@ -66,34 +72,55 @@ def main(x):
             consideracao_final_consumidor = ''
             
         reclamacao = {
-            'titulo': titulo_reclamacao,
-            'localizacao': localizacao,
-            'data_criacao': data_criacao,
-            'id_reclamacao': id_reclamacao,
-            'status': status_reclamacao,
-            'compraria_novamente': compraria_novamente,
-            'nota_atendimento': nota_atendimento,
-            'consideracao_final_consumidor': consideracao_final_consumidor
+            'TITULO': titulo_reclamacao.upper(),
+            'LOCALIZACAO': localizacao.upper(),
+            'DATA_CRIACAO': data_criacao.upper(),
+            'ID_RECLAMACAO': id_reclamacao.upper(),
+            'STATUS': status_reclamacao.upper(),
+            'COMPRARIA_NOVAMENTE': compraria_novamente.upper(),
+            'NOTA_ATENDIMENTO': nota_atendimento.upper(),
+            'CONSIDERACAO_FINAL_CONSUMIDOR': consideracao_final_consumidor.upper(),
+            'REFERENCIA': 'AMERICANAS'
         }
 
         lista_reclamacoes.append(reclamacao)
-
-        
     return lista_reclamacoes
 
+
+
+
+    # apagando os arquivos em desuso
+    try:
+        os.remove("new_data.csv")
+        os.remove("old_data.csv")
+    except FileNotFoundError:
+        print("O arquivo não foi encontrado.")
+
+    return new_data_only
+
 try: 
-    # ult_pag = ultima_pag()   # melhorar o codigo
+    hoje = datetime.today().date()
+    ontem = hoje - timedelta(days=1)
+    hora = datetime.now().strftime("%H:%M:%S")
     
-    for x in range(1,50):
+    # PAGINAÇÃO DAS 10 ULTIMAS PAGINAS, MAIS OU MENOS DADOS DE 1 DIA
+    for x in range(1,6): 
         main(x)
+        print(f"Estamos na página {x}")
         
-    df = pd.DataFrame(lista_reclamacoes)
-    df = df.drop(index=0)
-    df.to_csv(f'.\data\data-{datetime.date.today()}.csv', index=False) 
+    df = pd.DataFrame(lista_reclamacoes) # Dados novos coletados pelo script de web scraping
+    print(f"Salvando ...")
+    df.to_csv(f'.\data\data-{hoje}.csv', index=False, sep=';', header=True)     
 except Exception as e:
-    errorlist.append(f'{e} em {datetime.date.today()}')
-    f = open('logs_error.txt', 'a')
-    f.write(str(errorlist))
+    msg_erro = '\n'+'='*60 +'\n'+f'{e} em {hoje} as {hora}\n' + '='*60+'\n'
+    f = open('./logs/logs_error.txt', 'a')
+    f.write(''.join(msg_erro))
     f.close()
+    print(''.join(msg_erro))
 finally:
-    print(f'Done. {datetime.datetime.now().strftime("%H:%M:%S")}')
+    msg = '\n'+'='*60 +'\n'+f'O script rodou {hoje} as {hora} e foram coletados {len(df)} registros.\n'+'='*60+'\n'
+    print(msg)
+    f = open('./logs/logs.txt', 'a')
+    f.write(''.join(msg))
+    f.close()
+    print(''.join(logs))
