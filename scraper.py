@@ -21,16 +21,6 @@ errorlist = []
 new_data = []
 logs = []
 
-def ultima_pag():
-    navegador = webdriver.Chrome(options=options)
-    sleep(1)
-    navegador.get('https://www.reclameaqui.com.br/empresa/sou-energy/lista-reclamacoes/')
-    sleep(1)
-    s = BeautifulSoup(navegador.page_source, 'html.parser')
-    ult_pag = s.find('div', class_='sc-1sm4sxr-3 eejODo').find('ul', class_='sc-jhGUec eGyFMq').find_all('li')
-    ult_pag = int(ult_pag[-2].text)
-    return ult_pag
-
 def main(x):
     url = f'https://www.reclameaqui.com.br/empresa/americanas-com-loja-online/lista-reclamacoes/?pagina={x}' 
     links = []
