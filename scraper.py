@@ -21,6 +21,7 @@ errorlist = []
 new_data = []
 logs = []
 
+
 def main(x):
     url = f'https://www.reclameaqui.com.br/empresa/americanas-com-loja-online/lista-reclamacoes/?pagina={x}' 
     links = []
