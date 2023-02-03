@@ -72,31 +72,20 @@ def main(x):
             consideracao_final_consumidor = ''
             
         reclamacao = {
-            'TITULO': titulo_reclamacao.upper(),
-            'LOCALIZACAO': localizacao.upper(),
-            'DATA_CRIACAO': data_criacao.upper(),
-            'ID_RECLAMACAO': id_reclamacao.upper(),
-            'STATUS': status_reclamacao.upper(),
-            'COMPRARIA_NOVAMENTE': compraria_novamente.upper(),
-            'NOTA_ATENDIMENTO': nota_atendimento.upper(),
-            'CONSIDERACAO_FINAL_CONSUMIDOR': consideracao_final_consumidor.upper(),
-            'REFERENCIA': 'AMERICANAS'
+            'titulo': titulo_reclamacao.upper(),
+            'localizacao': localizacao.upper(),
+            'data_criacao': data_criacao.upper(),
+            'id_reclamacao': id_reclamacao.upper(),
+            'status': status_reclamacao.upper(),
+            'compraria_novamente': compraria_novamente.upper(),
+            'nota_atendimento': nota_atendimento.upper(),
+            'consideracao_final_consumidor': consideracao_final_consumidor.upper(),
+            'referencia': 'AMERICANAS'
         }
 
         lista_reclamacoes.append(reclamacao)
     return lista_reclamacoes
 
-
-
-
-    # apagando os arquivos em desuso
-    try:
-        os.remove("new_data.csv")
-        os.remove("old_data.csv")
-    except FileNotFoundError:
-        print("O arquivo não foi encontrado.")
-
-    return new_data_only
 
 try: 
     hoje = datetime.today().date()
