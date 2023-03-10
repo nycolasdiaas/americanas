@@ -48,7 +48,7 @@ def main(x):
         soup = BeautifulSoup(navegador.page_source, 'html.parser')
         titulo_reclamacao = soup.find('h1', attrs={'class': 'lzlu7c-3 berwWw'}).text
         localizacao = soup.find('span', attrs={'data-testid': 'complaint-location'}).text
-        data_criacao = soup.find('span', attrs={'data-testid': 'complaint-creation-date'}).text
+        data_criacao = soup.find('span', attrs={'data-testid': 'complaint-creation-date'}).text        
         id_reclamacao = soup.find('span', attrs={'data-testid': 'complaint-id'}).text
         id_reclamacao = ''.join(re.findall('[0-9]{9}', id_reclamacao)) # RETIRANDO A PALAVRA 'ID'
         status_reclamacao = soup.find('div', attrs={'data-testid': 'complaint-status'}).text
@@ -62,6 +62,13 @@ def main(x):
             nota_atendimento = ''
             consideracao_final_consumidor = ''
             
+        
+        # print(data_criacao)
+        formato_data = "%d/%m/%Y ÀS %H:%M"
+        data_criacao = datetime.strptime(data_criacao, formato_data) # ETL pra converter pra timestamp
+        data_criacao = str(data_criacao).replace('ÀS', '').strip()
+        # print(data_criacao)
+        
         reclamacao = {
             'titulo': titulo_reclamacao.upper(),
             'localizacao': localizacao.upper(),
@@ -84,13 +91,13 @@ try:
     hora = datetime.now().strftime("%H:%M:%S")
     
     # PAGINAÇÃO DAS 10 ULTIMAS PAGINAS, MAIS OU MENOS DADOS DE 1 DIA
-    for x in range(1,6): 
+    for x in range(1,10): 
         main(x)
         print(f"Estamos na página {x}")
         
     df = pd.DataFrame(lista_reclamacoes) # Dados novos coletados pelo script de web scraping
     print(f"Salvando ...")
-    df.to_csv(f'.\data\data-{hoje}.csv', index=False, sep=';', header=True)     
+    df.to_csv(f'./data/data-{hoje}.csv', index=False, sep=';', header=True)     
 except Exception as e:
     msg_erro = '\n'+'='*60 +'\n'+f'{e} em {hoje} as {hora}\n' + '='*60+'\n'
     f = open('./logs/logs_error.txt', 'a')
